@@ -1,48 +1,96 @@
-Project: Attendance Marking System using Face Detection
-
-Prerequisites
-Before running the code, make sure you have the following libraries installed:
-
-face_recognition
-OpenCV (cv2)
-NumPy
-CSV
-os
-datetime
-You can install these libraries using pip:
-
-bash
-Copy code
-pip install face_recognition opencv-python numpy
-Usage
-Clone the GitHub repository or download the script to your local machine.
-Create a folder for storing images of known individuals (e.g., "known_faces").
-Place images of the individuals you want to recognize in the "known_faces" folder. Ensure that each image is named with the person's name (e.g., "ayush.jpg").
-Modify the script to include the correct image filenames and corresponding names in the known_face_encoding and known_faces_names lists.
-Run the script using a Python interpreter:
-bash
-Copy code
-python attendance_marking.py
-The script will open a window displaying the webcam feed. When a known person's face is detected, their name and "PRESENT" will be displayed on the video frame. The attendance data will be recorded in a CSV file with the current date as the filename.
-
-To exit the program, press the 'q' key.
-
-Code Explanation
-Here's an explanation of the important parts of the code:
-
-The script captures video from the webcam using OpenCV.
-
-It loads images of known individuals and encodes their faces using the face_recognition library.
-
-The names and face encodings of known individuals are stored in known_face_encoding and known_faces_names lists.
-
-The script continuously processes frames from the webcam feed, identifies faces, and compares them to the known faces using face_recognition.
-
-When a known face is detected, the person's name is displayed on the video frame, and their attendance is recorded in a CSV file with the current date.
-
-The script continues running until you press the 'q' key, at which point it releases the webcam and closes the video window.
-
-The students list keeps track of students who have not yet been marked present.
-
-Output
-The script will print the list of students who are present and update the CSV file with the attendance data.
+import face_recognition
+import cv2
+import numpy as np
+import csv
+import os
+from datetime import datetime
+ 
+video_capture = cv2.VideoCapture(0)
+ 
+ayush = face_recognition.load_image_file("ayush.jpg")
+ayushe = face_recognition.face_encodings(ayush)[0]
+ 
+punish = face_recognition.load_image_file("punish.jpg")
+punishe = face_recognition.face_encodings(punish)[0]
+ 
+kunal = face_recognition.load_image_file("myphoto.jpg")
+kunale = face_recognition.face_encodings(kunal)[0]
+ 
+faculty = face_recognition.load_image_file("karthikeyan.jpg")
+facultye = face_recognition.face_encodings(faculty)[0]
+ 
+known_face_encoding = [
+ayushe,
+punishe,
+kunale,
+facultye
+]
+ 
+known_faces_names = [
+"AYUSH RANA",
+"PUNISH MIDHA",
+"KUNAL MUKHERJEE",
+"Dr. KARTHIKEYAN SIR"
+]
+ 
+students = known_faces_names.copy()
+ 
+face_locations = []
+face_encodings = []
+face_names = []
+s=True
+ 
+ 
+now = datetime.now()
+current_date = now.strftime("%Y-%m-%d")
+ 
+ 
+ 
+f = open(current_date+'.csv','w+',newline = '')
+lnwriter = csv.writer(f)
+ 
+while True:
+    _,frame = video_capture.read()
+    small_frame = cv2.resize(frame,(0,0),fx=0.5,fy=0.5)
+    rgb_small_frame = small_frame[:,:,::-1]
+    if s:
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_encodings = face_recognition.face_encodings(rgb_small_frame,face_locations)
+        face_names = []
+        for face_encoding in face_encodings:
+            matches = face_recognition.compare_faces(known_face_encoding,face_encoding)
+            name=""
+            face_distance = face_recognition.face_distance(known_face_encoding,face_encoding)
+            best_match_index = np.argmin(face_distance)
+            if matches[best_match_index]:
+                name = known_faces_names[best_match_index]
+ 
+            face_names.append(name)
+            if name in known_faces_names:
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                bottomLeftCornerOfText = (100,100)
+                fontScale              = 1.5
+                fontColor              = (255,0,0)
+                thickness              = 3
+                lineType               = 2
+ 
+                cv2.putText(frame,name+' PRESENT', 
+                    bottomLeftCornerOfText, 
+                    font, 
+                    fontScale,
+                    fontColor,
+                    thickness,
+                    lineType)
+ 
+                if name in students:
+                    students.remove(name)
+                    print(students)
+                    current_time = now.strftime("%H-%M-%S")
+                    lnwriter.writerow([name,current_time])
+    cv2.imshow("DSA PROJECT ATTENDANCE MARKING SYSTEM USING FACE DETECTON",frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+ 
+video_capture.release()
+cv2.destroyAllWindows()
+f.close()
